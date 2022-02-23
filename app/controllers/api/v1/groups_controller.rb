@@ -17,11 +17,14 @@ class Api::V1::GroupsController < ApplicationController
       }, 
       status: :ok
     else
-      render json: {messeage: "Couldn't find user by id = #{params[:user_id]}"}, status: :not_found
+      render json: {
+        status: true,
+        joined: {admin: [], others: []},
+        others: Group.all,
+      }, 
+      status: :ok
+      # render json: {messeage: "Couldn't find user by id = #{params[:user_id]}"}, status: :not_found
     end
-
-  
-   
   end
 
   def show
