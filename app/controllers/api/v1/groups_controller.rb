@@ -1,37 +1,48 @@
 class Api::V1::GroupsController < ApplicationController
   def index
-    groups = Group.order('created_at DESC')
-    render json: {
-      status: true,
-      data: groups
-    }, 
-    status: :ok
+    user = User.find_by(id: params[:user_id]) if params[:user_id]
+    if user
+      joinned_groups = user.groups
+      other_groups = Group.all.select{ |group| (joinned_groups.include? group) == false }
+      joinned_groups = joinned_groups.order('created_at DESC')
+      other_groups = other_groups.sort { |a, b| b.created_at <=> a.created_at }
+      render json: {
+        status: true,
+        joinned: joinned_groups,
+        others: other_groups,
+      }, 
+      status: :ok
+    else
+      render json: {messeage: "Couldn't find user by id = #{params[:user_id]}"}, status: :not_found
+    end
+
+   
   end
 
   def join
     user = User.find_by(id: params[:user_id])
     group = Group.find_by(code: params[:code])
-    if user
-      if group
-        if group.users.include? user
-          render json: {message: "You already join this group"}, status: :bad_request
-        else  
-          members_number = group.users.count
-          group.users << user
-          members_number2 = group.users.count
-          if members_number2 - members_number == 1
-            group.update(members_number: members_number2)
-            render json: group, status: :ok
-          else
-            render json: group.errors, status: :bad_request
+      if user
+        if group
+          if group.users.include? user
+            render json: {message: "You already join this group"}, status: :bad_request
+          else  
+            members_number = group.users.count
+            group.users << user
+            members_number2 = group.users.count
+            if members_number2 - members_number == 1
+              group.update(members_number: members_number2)
+              render json: group, status: :ok
+            else
+              render json: group.errors, status: :bad_request
+            end
           end
+        else
+          render json: {messeage: "Couldn't find group by code = #{params[:code]}"}, status: :not_found
         end
       else
-        render json: {messeage: "Couldn't find group by code = #{params[:code]}"}, status: :not_found
+        render json: {messeage: "Couldn't find user by id = #{params[:user_id]}"}, status: :not_found
       end
-    else
-      render json: {messeage: "Couldn't find user by id = #{params[:user_id]}"}, status: :not_found
-    end
     
   end
 
