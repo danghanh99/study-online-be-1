@@ -5,10 +5,14 @@ class Api::V1::GroupsController < ApplicationController
       joinned_groups = user.groups
       other_groups = Group.all.select{ |group| (joinned_groups.include? group) == false }
       joinned_groups = joinned_groups.order('created_at DESC')
+
+      admin_groups = joinned_groups.select{ |group| group.admin_id == user.id } if joinned_groups
+      joinned_groups = joinned_groups.select{ |group| (admin_groups.include? group) == false } if admin_groups
+
       other_groups = other_groups.sort { |a, b| b.created_at <=> a.created_at }
       render json: {
         status: true,
-        joined: joinned_groups,
+        joined: {admin: admin_groups, others: joinned_groups},
         others: other_groups,
       }, 
       status: :ok
@@ -51,8 +55,9 @@ class Api::V1::GroupsController < ApplicationController
       group = user.groups.new(group_params)
       default_url = "https://meet.jit.si/"
       group.members_number = 0
-      group.code = random_code
+      group.code = group.random_code
       group.url = default_url + group.code
+      group.admin_id = user.id
 
       if group.save
         render json: group, status: :created
@@ -98,16 +103,7 @@ class Api::V1::GroupsController < ApplicationController
   def delete
   end
 
-  def random_code
-    codes = Group.all.pluck(:code)
-    random_string = ('a'..'z').to_a.shuffle.first(8).join
-    random_code = random_string.upcase
-    while(codes.include? random_code) do
-      random_string = ('a'..'z').to_a.shuffle.first(8).join
-      random_code = random_string.upcase
-    end
-    return random_code
-  end
+  
 
   private
     def group_params
