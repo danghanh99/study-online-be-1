@@ -8,7 +8,7 @@ class Api::V1::GroupsController < ApplicationController
       other_groups = other_groups.sort { |a, b| b.created_at <=> a.created_at }
       render json: {
         status: true,
-        joinned: joinned_groups,
+        joined: joinned_groups,
         others: other_groups,
       }, 
       status: :ok
@@ -43,7 +43,6 @@ class Api::V1::GroupsController < ApplicationController
       else
         render json: {messeage: "Couldn't find user by id = #{params[:user_id]}"}, status: :not_found
       end
-    
   end
 
   def create 
@@ -64,6 +63,33 @@ class Api::V1::GroupsController < ApplicationController
       render json: {messeage: "Couldn't find user by id = #{params[:user_id]}"}, status: :not_found
     end
   end
+
+  def out_group
+    user = User.find_by(id: params[:user_id]) if params[:user_id] 
+    group = Group.find_by(id: params[:room_id]) if params[:room_id]
+    if user
+      if group
+        if (group.users.include? user) == false
+          render json: {message: "Couldn't find user in room"}, status: :not_found
+        else  
+          members_number = group.users.count
+          group.users.destroy(user)
+          members_number2 = group.users.count
+          if members_number2 - members_number == 1
+            group.update(members_number: members_number2)
+            render json: group, status: :ok
+          else
+            render json: group.errors, status: :bad_request
+          end
+        end
+      else
+        render json: {messeage: "Couldn't find room by id = #{params[:room_id]}"}, status: :not_found
+      end
+    else
+      render json: {messeage: "Couldn't find user by id = #{params[:user_id]}"}, status: :not_found
+    end
+  end
+
 
   def update
    
