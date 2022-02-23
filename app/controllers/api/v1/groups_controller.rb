@@ -20,7 +20,22 @@ class Api::V1::GroupsController < ApplicationController
       render json: {messeage: "Couldn't find user by id = #{params[:user_id]}"}, status: :not_found
     end
 
+  
    
+  end
+
+  def show
+    group =  Group.find_by(id: params[:id]) if params[:id]
+    if group
+      render json: {
+        status: true,
+        group: group,
+        users: group.users,
+      }, 
+      status: :ok
+    else
+      render json: {messeage: "Couldn't find room by id = #{params[:id]}"}, status: :not_found
+    end
   end
 
   def join
@@ -80,7 +95,7 @@ class Api::V1::GroupsController < ApplicationController
           members_number = group.users.count
           group.users.destroy(user)
           members_number2 = group.users.count
-          if members_number2 - members_number == 1
+          if members_number2 - members_number  == 1
             group.update(members_number: members_number2)
             render json: group, status: :ok
           else
