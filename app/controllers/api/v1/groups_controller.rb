@@ -17,12 +17,15 @@ class Api::V1::GroupsController < ApplicationController
       }, 
       status: :ok
     else
-      render json: {
-        status: true,
-        joined: {admin: [], others: []},
-        others: Group.all,
-      }, 
-      status: :ok
+      # render json: {
+      #   status: true,
+      #   joined: {admin: [], others: []},
+      #   others: Group.all,
+      #   each_serializer: GroupFullSerializer
+      # }, 
+      # status: :ok
+
+      render json: Group.all, each_serializer: GroupFullSerializer
       # render json: {messeage: "Couldn't find user by id = #{params[:user_id]}"}, status: :not_found
     end
   end
@@ -30,11 +33,7 @@ class Api::V1::GroupsController < ApplicationController
   def show
     group =  Group.find_by(id: params[:id]) if params[:id]
     if group
-      render json: {
-        status: true,
-        group: group,
-        users: group.users,
-      }, 
+      render json: group, serializer: GroupFullSerializer,
       status: :ok
     else
       render json: {messeage: "Couldn't find room by id = #{params[:id]}"}, status: :not_found
@@ -44,6 +43,7 @@ class Api::V1::GroupsController < ApplicationController
   def join
     user = User.find_by(id: params[:user_id])
     group = Group.find_by(code: params[:code])
+    group = Group.find_by(id: params[:room_id]) unless group
       if user
         if group
           if group.users.include? user
@@ -60,7 +60,7 @@ class Api::V1::GroupsController < ApplicationController
             end
           end
         else
-          render json: {messeage: "Couldn't find group by code = #{params[:code]}"}, status: :not_found
+          render json: {messeage: "Couldn't find group"}, status: :not_found
         end
       else
         render json: {messeage: "Couldn't find user by id = #{params[:user_id]}"}, status: :not_found
@@ -76,8 +76,8 @@ class Api::V1::GroupsController < ApplicationController
       group.code = group.random_code
       group.url = default_url + group.code
       group.admin_id = user.id
-
       if group.save
+        user.groups << group
         render json: group, status: :created
       else
         render json: group.errors, status: :unprocessable_entity
@@ -92,17 +92,24 @@ class Api::V1::GroupsController < ApplicationController
     group = Group.find_by(id: params[:room_id]) if params[:room_id]
     if user
       if group
-        if (group.users.include? user) == false
-          render json: {message: "Couldn't find user in room"}, status: :not_found
-        else  
-          members_number = group.users.count
-          group.users.destroy(user)
-          members_number2 = group.users.count
-          if members_number2 - members_number  == 1
-            group.update(members_number: members_number2)
-            render json: group, status: :ok
-          else
-            render json: group.errors, status: :bad_request
+        if group.admin_id == user.id
+          group.users.destroy_all
+          group.destroy!
+          # user.groups.destroy(group)
+          render json: {message: "success"}, status: :ok
+        else
+          if (group.users.include? user) == false
+            render json: {message: "Couldn't find user in room"}, status: :not_found
+          else  
+            members_number = group.users.count
+            group.users.destroy(user)
+            members_number2 = group.users.count
+            if members_number - members_number2 == 1
+              group.update(members_number: members_number2)
+              render json: group, serializer: GroupFullSerializer, status: :ok
+            else
+              render json: group.errors, status: :bad_request
+            end
           end
         end
       else
@@ -113,12 +120,77 @@ class Api::V1::GroupsController < ApplicationController
     end
   end
 
-
-  def update
-   
+  def start
+    group =  Group.find_by(id: params[:room_id]) if params[:room_id]
+    user = User.find_by(id: params[:user_id])
+    if group
+      if user
+        if group.admin_id == user.id
+          group.update!(started: true)
+          render json: group, serializer: GroupFullSerializer,
+          status: :ok
+        else
+          if group.started == true
+            render json: {message: "join meeting success"}, status: :ok
+          else
+            render json: {message: "Waiting host start meeting..."}, status: :forbidden
+          end
+        end
+      else
+        render json: {messeage: "Couldn't find user by id = #{params[:user_id]}"}, status: :not_found
+      end
+    else
+      render json: {messeage: "Couldn't find room by id = #{params[:room_id]}"}, status: :not_found
+    end
   end
 
-  def delete
+  def close
+    group =  Group.find_by(id: params[:room_id]) if params[:room_id]
+    user = User.find_by(id: params[:user_id])
+    if group
+      if user
+        if (group.users.include? user) == true
+          if group.started == true
+            if group.admin_id == user.id
+              group.update!(started: false)
+              render json: group, serializer: GroupFullSerializer,
+              status: :ok
+            else
+              render json: group, serializer: GroupFullSerializer, message: "close meeting success", status: :ok
+            end
+          else
+            render json: {message: "Waiting host start meeting..."}, status: :bad_request
+          end
+        else
+          render json: {message: "Couldn't find user in group"}, status: :not_found
+        end
+        
+      else
+        render json: {messeage: "Couldn't find user by id = #{params[:user_id]}"}, status: :not_found
+      end
+    else
+      render json: {messeage: "Couldn't find room by id = #{params[:room_id]}"}, status: :not_found
+  end
+  end
+
+  def delete_group
+    user = User.find_by(id: params[:user_id]) if params[:user_id]
+    group = Group.find_by(id: params[:room_id])  if params[:room_id]
+      if user
+        if group
+          if group.admin_id != user.id
+            render json: {message: "Permission denied"}, status: :forbidden
+          else  
+            group.users.destroy_all
+            group.destroy!
+            render json: {messeage: "Delete group success"}, status: :ok
+          end
+        else
+          render json: {messeage: "Couldn't find group"}, status: :not_found
+        end
+      else
+        render json: {messeage: "Couldn't find user by id = #{params[:user_id]}"}, status: :not_found
+      end
   end
 
   

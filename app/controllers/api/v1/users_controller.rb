@@ -3,11 +3,16 @@ class Api::V1::UsersController < ApplicationController
 
   def index
     @users = User.order('created_at DESC')
-    render json: {
-      status: true,
-      data: @users
-    }, 
-    status: :ok
+    # render json: {
+    #   status: true,
+    #   data: @users, each_serializer: UserSerializer
+    # }, 
+    render json: @users, each_serializer: UserFullSerializer
+    # status: :ok
+  end
+
+  def show
+    render json: @user, serializer: UserFullSerializer
   end
 
   def create
