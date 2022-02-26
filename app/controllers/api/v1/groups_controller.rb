@@ -25,7 +25,8 @@ class Api::V1::GroupsController < ApplicationController
       # }, 
       # status: :ok
 
-      render json: Group.all, each_serializer: GroupFullSerializer
+      # render json: Group.all, each_serializer: GroupFullSerializer
+      render json: {messeage: "Couldn't find user"}, status: :not_found
       # render json: {messeage: "Couldn't find user by id = #{params[:user_id]}"}, status: :not_found
     end
   end
