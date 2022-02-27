@@ -33,11 +33,20 @@ class Api::V1::GroupsController < ApplicationController
 
   def show
     group =  Group.find_by(id: params[:id]) if params[:id]
+    user =  User.find_by(id: params[:user_id]) if params[:user_id]
     if group
-      render json: group, serializer: GroupFullSerializer,
-      status: :ok
+      if user
+        if group.admin_id == user.id
+          render json: group, serializer: GroupFullSerializer,
+          status: :ok
+        else
+          render json: {messeage: "Permission deny"}, status: :bad_request
+        end
+      else
+        render json: {messeage: "Couldn't find user"}, status: :not_found
+      end
     else
-      render json: {messeage: "Couldn't find room by id = #{params[:id]}"}, status: :not_found
+      render json: {messeage: "Couldn't find room "}, status: :not_found
     end
   end
 
