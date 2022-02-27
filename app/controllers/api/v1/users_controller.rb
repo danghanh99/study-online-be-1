@@ -33,9 +33,6 @@ class Api::V1::UsersController < ApplicationController
     end
   end
 
-  def delete
-  end
-
   def login
     user = User.find_by(email: params[:email].downcase)
     if user
@@ -49,10 +46,27 @@ class Api::V1::UsersController < ApplicationController
     end
   end
 
-  def join_group
-  end
-
-  def log_out
+  def change_password
+    user = User.find_by(id: params[:user_id]) if params[:user_id]
+    if user
+      if user.password == params[:password]
+        length = params[:new_password].strip.length
+        if length >= 6 && length <=40
+          user.update(password: params[:new_password].strip)
+          if user.save
+            render json: user, status: :ok
+          else
+            render json: user.errors, status: :bad_request
+          end
+        else
+          render json: {message: "Invalid password, password length must be in 6..40"}, status: :bad_request
+        end 
+      else
+        render json: {message: "Old password not correct"}, status: :bad_request
+      end
+    else
+      render json: {message: "Couldn't find user"}, status: :not_found
+    end
   end
 
   def forgot_password
