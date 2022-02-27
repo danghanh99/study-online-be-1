@@ -185,6 +185,78 @@ class Api::V1::GroupsController < ApplicationController
     end
   end
 
+  def remove_member
+    admin = User.find_by(id: params[:admin_id]) if params[:admin_id] 
+    member = User.find_by(id: params[:member_id]) if params[:member_id] 
+    group = Group.find_by(id: params[:room_id]) if params[:room_id]
+    if admin
+      if member
+        if group
+          if (group.users.include? member) == false || (group.users.include? admin) == false
+            if group.admin_id == admin.id
+              if admin.id == member.id
+                render json: {messeage: "Duplicate user"}, status: :bad_request
+              else
+                members_number = group.users.count
+                group.users.destroy(member)
+                members_number2 = group.users.count
+                if members_number - members_number2 == 1
+                  group.update(members_number: members_number2)
+                  if group.save
+                    render json: group, serializer: GroupFullSerializer, status: :ok
+                  else
+                    render json: group.errors, status: :bad_request
+                  end
+                else
+                  render json: "Cloldn't remove, update number member", status: :bad_request
+                end
+
+              end
+            else
+              render json: {messeage: "Permission deny"}, status: :not_found
+            end
+          else
+            render json: {messeage: "Couldn't find user or admin in room"}, status: :not_found
+          end
+        else
+          render json: {messeage: "Couldn't find room"}, status: :not_found
+        end
+      else
+        render json: {messeage: "Couldn't find member"}, status: :not_found
+      end
+    else
+      render json: {messeage: "Couldn't find admin"}, status: :not_found
+    end
+    if user
+      if group
+        if group.admin_id == user.id
+          group.users.destroy_all
+          group.destroy!
+          # user.groups.destroy(group)
+          render json: {message: "success"}, status: :ok
+        else
+          if (group.users.include? user) == false
+            render json: {message: "Couldn't find user in room"}, status: :not_found
+          else  
+            members_number = group.users.count
+            group.users.destroy(user)
+            members_number2 = group.users.count
+            if members_number - members_number2 == 1
+              group.update(members_number: members_number2)
+              render json: group, serializer: GroupFullSerializer, status: :ok
+            else
+              render json: group.errors, status: :bad_request
+            end
+          end
+        end
+      else
+        render json: {messeage: "Couldn't find room by id = #{params[:room_id]}"}, status: :not_found
+      end
+    else
+      render json: {messeage: "Couldn't find user by id = #{params[:user_id]}"}, status: :not_found
+    end
+  end
+
   def start
     group =  Group.find_by(id: params[:room_id]) if params[:room_id]
     user = User.find_by(id: params[:user_id])
