@@ -17,17 +17,47 @@ class Api::V1::GroupsController < ApplicationController
       }, 
       status: :ok
     else
-      # render json: {
-      #   status: true,
-      #   joined: {admin: [], others: []},
-      #   others: Group.all,
-      #   each_serializer: GroupFullSerializer
-      # }, 
-      # status: :ok
-
-      # render json: Group.all, each_serializer: GroupFullSerializer
       render json: {messeage: "Couldn't find user"}, status: :not_found
-      # render json: {messeage: "Couldn't find user by id = #{params[:user_id]}"}, status: :not_found
+    end
+  end
+
+  def revert_member
+    admin = User.find_by(id: params[:admin_id]) if params[:admin_id] 
+    member = User.find_by(id: params[:member_id]) if params[:member_id] 
+    group = Group.find_by(id: params[:room_id]) if params[:room_id]
+    if admin
+      if member
+        if group
+          if (group.black_members.include? member.id) == true
+            if  (group.users.include? admin) == true
+              if group.admin_id == admin.id
+                if admin.id == member.id
+                  render json: {messeage: "Duplicate user"}, status: :bad_request
+                else
+                  group.black_members.delete(member.id)
+                  if group.save
+                    render json: group, serializer: GroupFullSerializer, status: :ok
+                  else
+                    render json: group.errors, status: :bad_request
+                  end
+                end
+              else
+                render json: {messeage: "Permission deny"}, status: :not_found
+              end
+            else
+              render json: {messeage: "Couldn't find admin in room"}, status: :not_found
+            end 
+          else
+            render json: {messeage: "Couldn't find member in room's black list"}, status: :not_found
+          end
+        else
+          render json: {messeage: "Couldn't find room"}, status: :not_found
+        end
+      else
+        render json: {messeage: "Couldn't find member"}, status: :not_found
+      end
+    else
+      render json: {messeage: "Couldn't find admin"}, status: :not_found
     end
   end
 
@@ -122,6 +152,7 @@ class Api::V1::GroupsController < ApplicationController
           group.category_id = category.id
           if group.save
             user.groups << group
+            user.save
             render json: group, status: :created
           else
             render json: group.errors, status: :unprocessable_entity
@@ -203,6 +234,7 @@ class Api::V1::GroupsController < ApplicationController
                   members_number2 = group.users.count
                   if members_number - members_number2 == 1
                     group.update(members_number: members_number2)
+                    group.black_members.push(member.id)
                     if group.save
                       render json: group, serializer: GroupFullSerializer, status: :ok
                     else

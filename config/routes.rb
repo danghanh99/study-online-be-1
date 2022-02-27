@@ -9,6 +9,7 @@ Rails.application.routes.draw do
       delete '/delete-group', to: 'groups#delete_group'
       put '/change-password', to: 'users#change_password'
       put '/remove-member', to: 'groups#remove_member'
+      put '/revert-member', to: 'groups#revert_member'
       resources :jobs
       resources :categories
       resources :users 
