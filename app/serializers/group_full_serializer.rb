@@ -6,9 +6,11 @@ class GroupFullSerializer < ActiveModel::Serializer
   end
 
   def users
+    list = []
     object.users.map do |user|
-      UserSerializer.new(user)
+      list.push(UserSerializer.new(user)) if object.id == user.id
     end
+    list
   end
 end
 
