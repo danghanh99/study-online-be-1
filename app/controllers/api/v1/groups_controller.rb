@@ -116,17 +116,21 @@ class Api::V1::GroupsController < ApplicationController
     group = Group.find_by(id: params[:room_id]) unless group
       if user
         if group
-          if group.users.include? user
-            render json: {message: "You already join this group"}, status: :bad_request
-          else  
-            members_number = group.users.count
-            group.users << user
-            members_number2 = group.users.count
-            if members_number2 - members_number == 1
-              group.update(members_number: members_number2)
-              render json: group, status: :ok
-            else
-              render json: group.errors, status: :bad_request
+          if (group.black_members.include? user.id) == true
+            render json: {messeage: "You are in room's black list, contact admin..."}, status: :bad_request
+          else
+            if group.users.include? user
+              render json: {message: "You already join this group"}, status: :bad_request
+            else  
+              members_number = group.users.count
+              group.users << user
+              members_number2 = group.users.count
+              if members_number2 - members_number == 1
+                group.update(members_number: members_number2)
+                render json: group, status: :ok
+              else
+                render json: group.errors, status: :bad_request
+              end
             end
           end
         else
