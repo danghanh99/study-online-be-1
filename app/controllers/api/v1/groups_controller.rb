@@ -192,31 +192,34 @@ class Api::V1::GroupsController < ApplicationController
     if admin
       if member
         if group
-          if (group.users.include? member) == false || (group.users.include? admin) == false
-            if group.admin_id == admin.id
-              if admin.id == member.id
-                render json: {messeage: "Duplicate user"}, status: :bad_request
-              else
-                members_number = group.users.count
-                group.users.destroy(member)
-                members_number2 = group.users.count
-                if members_number - members_number2 == 1
-                  group.update(members_number: members_number2)
-                  if group.save
-                    render json: group, serializer: GroupFullSerializer, status: :ok
-                  else
-                    render json: group.errors, status: :bad_request
-                  end
+          if (group.users.include? member) == true
+            if  (group.users.include? admin) == true
+              if group.admin_id == admin.id
+                if admin.id == member.id
+                  render json: {messeage: "Duplicate user"}, status: :bad_request
                 else
-                  render json: "Cloldn't remove, update number member", status: :bad_request
+                  members_number = group.users.count
+                  group.users.destroy(member)
+                  members_number2 = group.users.count
+                  if members_number - members_number2 == 1
+                    group.update(members_number: members_number2)
+                    if group.save
+                      render json: group, serializer: GroupFullSerializer, status: :ok
+                    else
+                      render json: group.errors, status: :bad_request
+                    end
+                  else
+                    render json: "Cloldn't remove, update number member", status: :bad_request
+                  end
                 end
-
+              else
+                render json: {messeage: "Permission deny"}, status: :not_found
               end
             else
-              render json: {messeage: "Permission deny"}, status: :not_found
-            end
+              render json: {messeage: "Couldn't find admin in room"}, status: :not_found
+            end 
           else
-            render json: {messeage: "Couldn't find user or admin in room"}, status: :not_found
+            render json: {messeage: "Couldn't find member in room"}, status: :not_found
           end
         else
           render json: {messeage: "Couldn't find room"}, status: :not_found
