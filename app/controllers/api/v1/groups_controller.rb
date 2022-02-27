@@ -31,6 +31,36 @@ class Api::V1::GroupsController < ApplicationController
     end
   end
 
+  def update
+    group =  Group.find_by(id: params[:id]) if params[:id]
+    user =  User.find_by(id: params[:user_id]) if params[:user_id]
+    category =  Category.find_by(id: params[:category_id]) if params[:category_id]
+    if group
+      if user
+        if category
+          if group.admin_id == user.id
+            group.update(group_params)
+            if group.save 
+              render json: group, serializer: GroupFullSerializer,
+              status: :ok
+            else
+              render json: group.errors, status: :bad_request
+            end
+            
+          else
+            render json: {messeage: "Permission deny"}, status: :bad_request
+          end
+        else
+          render json: {messeage: "Couldn't find category"}, status: :not_found
+        end
+      else
+        render json: {messeage: "Couldn't find user"}, status: :not_found
+      end
+    else
+      render json: {messeage: "Couldn't find room "}, status: :not_found
+    end
+  end
+
   def show
     group =  Group.find_by(id: params[:id]) if params[:id]
     user =  User.find_by(id: params[:user_id]) if params[:user_id]
@@ -232,6 +262,6 @@ class Api::V1::GroupsController < ApplicationController
 
   private
     def group_params
-      params.permit(:name, :description)
+      params.permit(:name, :description, :category_id)
     end
 end
