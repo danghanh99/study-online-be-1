@@ -17,7 +17,7 @@ class GroupFullSerializer < ActiveModel::Serializer
   def users
     list = []
     object.users.map do |user|
-      list.push(UserSerializer.new(user)) if object.id == user.id
+      list.push(UserSerializer.new(user)) if object.admin_id != user.id
     end
     list
   end
