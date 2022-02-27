@@ -70,21 +70,46 @@ class Api::V1::GroupsController < ApplicationController
 
   def create 
     user = User.find_by(id: params[:user_id])
-    if user
-      group = user.groups.new(group_params)
-      default_url = "https://meet.jit.si/"
-      group.members_number = 0
-      group.code = group.random_code
-      group.url = default_url + group.code
-      group.admin_id = user.id
-      if group.save
-        user.groups << group
-        render json: group, status: :created
+    if params[:category_id]
+      category = Category.find_by(id: params[:category_id])
+      if category
+        if user
+          group = user.groups.new(group_params)
+          default_url = "https://meet.jit.si/"
+          group.members_number = 0
+          group.code = group.random_code
+          group.url = default_url + group.code
+          group.admin_id = user.id
+          group.category_id = category.id
+          if group.save
+            user.groups << group
+            render json: group, status: :created
+          else
+            render json: group.errors, status: :unprocessable_entity
+          end
+        else
+          render json: {messeage: "Couldn't find user by id = #{params[:user_id]}"}, status: :not_found
+        end
       else
-        render json: group.errors, status: :unprocessable_entity
+        render json: {messeage: "Couldn't find category"}, status: :not_found
       end
     else
-      render json: {messeage: "Couldn't find user by id = #{params[:user_id]}"}, status: :not_found
+      if user
+        group = user.groups.new(group_params)
+        default_url = "https://meet.jit.si/"
+        group.members_number = 0
+        group.code = group.random_code
+        group.url = default_url + group.code
+        group.admin_id = user.id
+        if group.save
+          user.groups << group
+          render json: group, status: :created
+        else
+          render json: group.errors, status: :unprocessable_entity
+        end
+      else
+        render json: {messeage: "Couldn't find user by id = #{params[:user_id]}"}, status: :not_found
+      end
     end
   end
 

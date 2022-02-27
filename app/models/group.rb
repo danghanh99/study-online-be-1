@@ -1,6 +1,6 @@
 class Group < ApplicationRecord
   has_and_belongs_to_many :users
-
+  belongs_to :category, required: false
   def random_code
     codes = Group.all.pluck(:code)
     random_string = ('a'..'z').to_a.shuffle.first(8).join

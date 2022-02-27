@@ -10,10 +10,17 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 2022_02_24_161600) do
+ActiveRecord::Schema.define(version: 2022_02_27_033841) do
 
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
+
+  create_table "categories", force: :cascade do |t|
+    t.string "name"
+    t.string "description"
+    t.datetime "created_at", precision: 6, null: false
+    t.datetime "updated_at", precision: 6, null: false
+  end
 
   create_table "groups", force: :cascade do |t|
     t.string "name"
@@ -25,6 +32,8 @@ ActiveRecord::Schema.define(version: 2022_02_24_161600) do
     t.datetime "updated_at", precision: 6, null: false
     t.bigint "admin_id"
     t.boolean "started", default: false
+    t.bigint "category_id"
+    t.index ["category_id"], name: "index_groups_on_category_id"
   end
 
   create_table "groups_users", force: :cascade do |t|
@@ -36,16 +45,26 @@ ActiveRecord::Schema.define(version: 2022_02_24_161600) do
     t.index ["user_id"], name: "index_groups_users_on_user_id"
   end
 
+  create_table "jobs", force: :cascade do |t|
+    t.string "name"
+    t.string "description"
+    t.datetime "created_at", precision: 6, null: false
+    t.datetime "updated_at", precision: 6, null: false
+  end
+
   create_table "users", force: :cascade do |t|
     t.string "name"
     t.string "email"
     t.string "password"
     t.string "gender"
-    t.string "job"
     t.datetime "created_at", precision: 6, null: false
     t.datetime "updated_at", precision: 6, null: false
+    t.bigint "job_id"
+    t.index ["job_id"], name: "index_users_on_job_id"
   end
 
+  add_foreign_key "groups", "categories"
   add_foreign_key "groups_users", "groups"
   add_foreign_key "groups_users", "users"
+  add_foreign_key "users", "jobs"
 end
